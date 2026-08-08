@@ -32,3 +32,4 @@ Deer Kanban es una aplicación de gestión de tareas ágil, moderna y personaliz
 2. Inicia los contenedores usando Docker:
    ```bash
    docker compose up --build -d
+3. Uusarios default: admin password: admin123
