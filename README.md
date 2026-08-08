@@ -11,6 +11,8 @@ Deer Kanban es una aplicación de gestión de tareas ágil, moderna y personaliz
 * **Papelera de Reciclaje:** Archiva y recupera tableros fácilmente.
 * **Despliegue Sencillo:** Configuración lista para producción mediante contenedores.
 
+* Orientado a personas que requieren usar Kanban con caracteristicas colaborativas o de forma individual sin tener que pasar por caja para tener ciertas funcionalidades así como puede ser posible implementarlo en empresas y maximizar la visibilidad de proyectos y avances.
+
 ## 📸 Capturas de Pantalla
 
 <img width="1920" height="911" alt="image" src="https://github.com/user-attachments/assets/e8dd9be3-8fec-4fb6-8537-6a5f70ef2850" />
