@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  kanban-app:
+    build: .
+    ports:
+      - "3025:3025"
+    volumes:
+      # Montamos el directorio de Prisma para que la base de datos SQLite persista
+      - ./server/prisma:/app/server/prisma
+      # Montamos los uploads para que las imágenes persistan
+      - ./server/public/uploads:/app/server/public/uploads
+    environment:
+      - PORT=3025
+      - DATABASE_URL=file:./dev.db
+      - JWT_SECRET=supersecret_key_kanban
