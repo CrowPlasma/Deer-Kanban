@@ -1,0 +1,16 @@
+node_modules
+client/node_modules
+server/node_modules
+**/node_modules
+npm-debug.log
+.env.local
+.env.*.local
+
+# IMPORTANT: Never overwrite production database on deploy
+server/prisma/dev.db
+server/prisma/*.db
+server/prisma/*.db-wal
+server/prisma/*.db-shm
+
+# Never overwrite user uploaded files
+server/public/uploads/*

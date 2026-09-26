@@ -192,46 +192,71 @@ const KanbanBoard = ({ boardId, user }) => {
   };
 
   const handleExportReport = () => {
-    let totalTasks = 0;
-    let completedTasks = 0;
-    let report = `====================================================\n`;
-    report += `📊 REPORTE EJECUTIVO DE PROYECTO: ${board.name.toUpperCase()}\n`;
-    report += `Fecha de generación: ${new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}\n`;
-    report += `====================================================\n\n`;
+    // Definir los encabezados del CSV
+    const headers = [
+      'Lista',
+      'Tarea',
+      'Estado',
+      'Asignado',
+      'Fecha Límite',
+      'Etiquetas',
+      'Descripción',
+      'Progreso Subtareas',
+      'Detalle de Subtareas'
+    ];
+    
+    // Función auxiliar para escapar textos en CSV (comillas, saltos de línea, comas)
+    const escapeCSV = (str) => {
+      if (str === null || str === undefined) return '""';
+      const cleanStr = String(str).replace(/"/g, '""');
+      return `"${cleanStr}"`;
+    };
+
+    let csvContent = headers.map(escapeCSV).join(',') + '\n';
 
     board.lists.forEach(list => {
-      report += `📁 LISTA: ${list.name.toUpperCase()} (${list.tasks.length} tareas)\n`;
-      report += `----------------------------------------------------\n`;
-      if (list.tasks.length === 0) {
-        report += `  (Sin tareas activas)\n`;
-      }
+      const listName = list.name;
       list.tasks.forEach(task => {
-        totalTasks++;
-        if (task.isCompleted) completedTasks++;
-        const statusIcon = task.isCompleted ? '✅ COMPLETADO' : '⏳ PENDIENTE';
+        const title = task.title;
+        const status = task.isCompleted ? 'Completado' : 'Pendiente';
         const assigneeName = task.assignee ? task.assignee.username : 'Sin asignar';
-        const due = task.dueDate ? ` | Vencimiento: ${new Date(task.dueDate).toLocaleDateString()}` : '';
-        const tags = task.labels ? ` | Etiquetas: [${task.labels}]` : '';
-        report += `  * [${statusIcon}] ${task.title}\n`;
-        report += `    Asignado a: @${assigneeName}${due}${tags}\n`;
+        // Ajuste de fecha respetando zona horaria local si existe
+        const due = task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'Sin fecha';
+        const tags = task.labels || '';
+        const desc = task.description || '';
+        
+        let subtasksProgress = '0/0';
+        let subtasksDetail = '';
+        
         if (task.subtasks && task.subtasks.length > 0) {
           const subDone = task.subtasks.filter(s => s.isCompleted).length;
-          report += `    Progreso Checklist: ${subDone}/${task.subtasks.length} (${Math.round((subDone/task.subtasks.length)*100)}%)\n`;
+          subtasksProgress = `${subDone}/${task.subtasks.length} (${Math.round((subDone/task.subtasks.length)*100)}%)`;
+          // Concatenar subtareas con saltos de línea para que se vean en una celda
+          subtasksDetail = task.subtasks.map(s => `[${s.isCompleted ? 'x' : ' '}] ${s.title}`).join('\n');
         }
+
+        const row = [
+          listName,
+          title,
+          status,
+          assigneeName,
+          due,
+          tags,
+          desc,
+          subtasksProgress,
+          subtasksDetail
+        ];
+
+        csvContent += row.map(escapeCSV).join(',') + '\n';
       });
-      report += `\n`;
     });
 
-    const percent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-    report += `====================================================\n`;
-    report += `📈 RESUMEN GENERAL: ${completedTasks} de ${totalTasks} tareas globales finalizadas (${percent}%)\n`;
-    report += `Generado por Deer Kanban - Sistema de Gestión Premium\n`;
-
-    const blob = new Blob([report], { type: 'text/plain;charset=utf-8' });
+    // Añadir BOM (Byte Order Mark) para que Excel reconozca los acentos y caracteres UTF-8
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `Reporte_${board.name.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0,10)}.txt`;
+    link.download = `Reporte_${board.name.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0,10)}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -390,10 +415,10 @@ const KanbanBoard = ({ boardId, user }) => {
               transition: 'all 0.2s'
             }}
             onClick={handleExportReport}
-            title="Descargar Resumen Ejecutivo"
+            title="Exportar a CSV"
           >
             <FileText size={16} color="var(--accent-blue)" />
-            Exportar Reporte
+            Exportar CSV
           </button>
 
           <button 
