@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
-import { Users, UserPlus, Shield, XCircle, RefreshCw, Edit2, Settings as SettingsIcon, Image as ImageIcon } from 'lucide-react';
+import { Users, UserPlus, Shield, XCircle, RefreshCw, Edit2, Settings as SettingsIcon, Image as ImageIcon, Download, Database } from 'lucide-react';
 import { useModal } from '../context/ModalContext';
 import { SettingsContext } from '../context/SettingsContext';
 
@@ -265,6 +265,26 @@ const AdminPanel = () => {
               />
               Permitir a los usuarios usar fondos de tablero personalizados
             </label>
+          </div>
+
+          <hr style={{ border: 'none', borderTop: '1px solid var(--border-color)', margin: '24px 0' }} />
+
+          <div style={{ marginBottom: '24px' }}>
+            <h3 style={{ fontSize: '16px', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Database size={18} /> Respaldo y Migración
+            </h3>
+            <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
+              Descarga un archivo ZIP con la base de datos completa y todas las imágenes de los tableros. Ideal para migrar el sistema a otro servidor (VPS) sin perder información.
+            </p>
+            <a 
+              href="/api/settings/backup" 
+              className="btn btn-primary" 
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px', textDecoration: 'none' }}
+              download
+            >
+              <Download size={18} />
+              Generar y Descargar Backup
+            </a>
           </div>
 
           <hr style={{ border: 'none', borderTop: '1px solid var(--border-color)', margin: '24px 0' }} />
