@@ -311,15 +311,28 @@ const AdminPanel = () => {
               Descarga un archivo ZIP con la base de datos completa y todas las imágenes de los tableros. Ideal para migrar el sistema a otro servidor (VPS) sin perder información.
             </p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'flex-start' }}>
-              <a 
-                href="/api/settings/backup" 
+              <button 
+                onClick={async () => {
+                  try {
+                    const res = await axios.get('/api/settings/backup', { responseType: 'blob' });
+                    const url = window.URL.createObjectURL(new Blob([res.data]));
+                    const link = document.createElement('a');
+                    link.href = url;
+                    const dateStr = new Date().toISOString().slice(0, 10);
+                    link.setAttribute('download', `deer-kanban-backup-${dateStr}.zip`);
+                    document.body.appendChild(link);
+                    link.click();
+                    link.parentNode.removeChild(link);
+                  } catch (error) {
+                    showAlert('Error', 'No se pudo descargar el respaldo. Verifica tus permisos.', 'danger');
+                  }
+                }}
                 className="btn btn-primary" 
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px', textDecoration: 'none' }}
-                download
               >
                 <Download size={18} />
                 Generar y Descargar Backup
-              </a>
+              </button>
               
               <div style={{ borderLeft: '1px solid var(--border-color)', paddingLeft: '16px' }}>
                 <p style={{ fontSize: '13px', color: 'var(--text-primary)', marginBottom: '8px', fontWeight: 500 }}>
