@@ -19,5 +19,5 @@ COPY --from=client-builder /app/client/dist ./public
 # Exponer el puerto solicitado por el usuario
 EXPOSE 3025
 
-# Iniciar el servidor
-CMD ["npm", "start"]
+# Iniciar el servidor (Forzamos db push para crear/actualizar la BD si no existe o hubo cambios)
+CMD ["sh", "-c", "npx prisma db push --accept-data-loss && npm start"]
