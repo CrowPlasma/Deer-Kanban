@@ -181,8 +181,8 @@ router.get('/:id', async (req, res) => {
             }
           }
         },
-        members: { include: { user: { select: { username: true } } } },
-        owner: { select: { username: true } },
+        members: { include: { user: { select: { username: true, email: true } } } },
+        owner: { select: { username: true, email: true } },
         activities: {
           orderBy: { createdAt: 'desc' },
           take: 50,

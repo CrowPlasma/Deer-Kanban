@@ -113,6 +113,8 @@ model SystemSettings {
   id                         String   @id @default("singleton")
   institutionalBackgroundUrl String?
   allowCustomBackgrounds     Boolean  @default(true)
+  smtpEmail                  String?
+  smtpPassword               String?
   updatedAt                  DateTime @updatedAt
 }
 

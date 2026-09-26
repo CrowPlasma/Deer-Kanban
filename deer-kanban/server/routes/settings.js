@@ -96,7 +96,12 @@ router.get('/', async (req, res) => {
       });
     }
     
-    res.json(settings);
+    // Ocultar password por seguridad
+    const { smtpPassword, ...safeSettings } = settings;
+    // Indicar si esta configurado
+    safeSettings.isEmailConfigured = !!smtpPassword;
+    
+    res.json(safeSettings);
   } catch (error) {
     res.status(500).json({ error: 'Error al obtener configuración' });
   }
@@ -105,22 +110,29 @@ router.get('/', async (req, res) => {
 // PATCH /api/settings (Requiere Admin)
 router.patch('/', requireAdmin, async (req, res) => {
   try {
-    const { institutionalBackgroundUrl, allowCustomBackgrounds } = req.body;
+    const { institutionalBackgroundUrl, allowCustomBackgrounds, smtpEmail, smtpPassword } = req.body;
     
     const settings = await prisma.systemSettings.upsert({
       where: { id: 'singleton' },
       update: {
         ...(institutionalBackgroundUrl !== undefined && { institutionalBackgroundUrl }),
-        ...(allowCustomBackgrounds !== undefined && { allowCustomBackgrounds })
+        ...(allowCustomBackgrounds !== undefined && { allowCustomBackgrounds }),
+        ...(smtpEmail !== undefined && { smtpEmail }),
+        ...(smtpPassword !== undefined && { smtpPassword: smtpPassword === null ? null : (smtpPassword.trim() !== '' ? smtpPassword : undefined) })
       },
       create: {
         id: 'singleton',
         institutionalBackgroundUrl,
-        allowCustomBackgrounds: allowCustomBackgrounds !== undefined ? allowCustomBackgrounds : true
+        allowCustomBackgrounds: allowCustomBackgrounds !== undefined ? allowCustomBackgrounds : true,
+        ...(smtpEmail !== undefined && { smtpEmail }),
+        ...(smtpPassword !== undefined && { smtpPassword })
       }
     });
     
-    res.json(settings);
+    const { smtpPassword: _, ...safeSettings } = settings;
+    safeSettings.isEmailConfigured = !!settings.smtpPassword;
+    
+    res.json(safeSettings);
   } catch (error) {
     res.status(500).json({ error: 'Error al actualizar configuración' });
   }

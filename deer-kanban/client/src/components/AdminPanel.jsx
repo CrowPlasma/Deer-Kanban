@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
-import { Users, UserPlus, Shield, XCircle, RefreshCw, Edit2, Settings as SettingsIcon, Image as ImageIcon, Download, Database, Upload } from 'lucide-react';
+import { Users, UserPlus, Shield, XCircle, RefreshCw, Edit2, Settings as SettingsIcon, Image as ImageIcon, Download, Database, Upload, Mail } from 'lucide-react';
 import { useModal } from '../context/ModalContext';
 import { SettingsContext } from '../context/SettingsContext';
 
@@ -10,10 +10,16 @@ const AdminPanel = () => {
   const [newUsername, setNewUsername] = useState('');
   const [editingUser, setEditingUser] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState('users'); // users, settings
+  const [activeTab, setActiveTab] = useState('users'); // users, settings, email
   const { settings, fetchSettings } = useContext(SettingsContext);
   const [bgFile, setBgFile] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [smtpEmail, setSmtpEmail] = useState('');
+  const [smtpPassword, setSmtpPassword] = useState('');
+
+  useEffect(() => {
+    if (settings?.smtpEmail) setSmtpEmail(settings.smtpEmail);
+  }, [settings]);
   
   const fetchUsers = async () => {
     try {
@@ -227,6 +233,9 @@ const AdminPanel = () => {
         </button>
         <button className={`btn ${activeTab === 'settings' ? 'btn-primary' : 'btn-text'}`} onClick={() => setActiveTab('settings')}>
           <SettingsIcon size={16} style={{ marginRight: '8px' }} /> Configuración Global
+        </button>
+        <button className={`btn ${activeTab === 'email' ? 'btn-primary' : 'btn-text'}`} onClick={() => setActiveTab('email')}>
+          <Mail size={16} style={{ marginRight: '8px' }} /> Configuración Correo
         </button>
       </div>
 
@@ -490,6 +499,91 @@ const AdminPanel = () => {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {activeTab === 'email' && (
+        <div className="card">
+          <h3 style={{ fontSize: '16px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Mail size={18}/> Configuración de Correo (Gmail)
+          </h3>
+          <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '24px' }}>
+            Para habilitar el envío de notificaciones y recordatorios de tareas, configura una cuenta de Gmail.
+            <br/><br/>
+            <strong>Pasos para configurar:</strong>
+            <ol style={{ marginLeft: '20px', marginTop: '8px' }}>
+              <li>Activa la Verificación en 2 Pasos en tu cuenta de Google.</li>
+              <li>Ve a Gestionar tu cuenta de Google &gt; Seguridad &gt; Contraseñas de aplicaciones.</li>
+              <li>Crea una nueva contraseña para la aplicación (ej. "Kanban") y cópiala de la pantalla.</li>
+              <li>Pega esa contraseña de 16 letras en el campo de abajo.</li>
+            </ol>
+          </p>
+          
+          <form 
+            style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '400px' }}
+            onSubmit={async (e) => {
+              e.preventDefault();
+              await handleUpdateSettings({ smtpEmail, smtpPassword });
+              setSmtpPassword(''); // Limpiar por seguridad
+            }}
+          >
+            <div>
+              <label style={{ display: 'block', fontSize: '13px', marginBottom: '6px', fontWeight: 500 }}>Correo de Gmail:</label>
+              <input 
+                type="email" 
+                className="input" 
+                placeholder="ejemplo@gmail.com" 
+                value={smtpEmail}
+                onChange={e => setSmtpEmail(e.target.value)}
+                style={{ width: '100%' }}
+                required
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '13px', marginBottom: '6px', fontWeight: 500 }}>Contraseña de Aplicación:</label>
+              <input 
+                type="password" 
+                className="input" 
+                placeholder={settings?.isEmailConfigured ? "******** (Configurada)" : "Ingresa la contraseña de 16 letras..."}
+                value={smtpPassword}
+                onChange={e => setSmtpPassword(e.target.value)}
+                style={{ width: '100%' }}
+                required={!settings?.isEmailConfigured}
+              />
+              {settings?.isEmailConfigured && (
+                <small style={{ color: 'var(--success-color, #10b981)', display: 'block', marginTop: '4px' }}>✓ El correo ya está configurado. Déjalo en blanco si no quieres cambiar la contraseña.</small>
+              )}
+            </div>
+            
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button type="submit" className="btn btn-primary">
+                Guardar Configuración
+              </button>
+              
+              {settings?.isEmailConfigured && (
+                <button 
+                  type="button" 
+                  className="btn" 
+                  style={{ backgroundColor: '#ef4444', color: 'white', borderColor: 'transparent' }}
+                  onClick={async () => {
+                    const confirmed = await showConfirm(
+                      'Desvincular Correo',
+                      '¿Estás seguro de que deseas desvincular el correo? El sistema ya no podrá enviar notificaciones.',
+                      'danger'
+                    );
+                    if (confirmed) {
+                      await handleUpdateSettings({ smtpEmail: null, smtpPassword: null });
+                      setSmtpEmail('');
+                      setSmtpPassword('');
+                      showAlert('Desvinculado', 'El correo ha sido desvinculado exitosamente.', 'success');
+                    }
+                  }}
+                >
+                  Desvincular Correo
+                </button>
+              )}
+            </div>
+          </form>
         </div>
       )}
     </div>

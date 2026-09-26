@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { Calendar, UserPlus, X, Plus, Trash2, CheckCircle2, Circle, ChevronDown, ChevronUp, AlignLeft, CheckSquare, Tag, AlertTriangle, Clock, GripHorizontal } from 'lucide-react';
+import { Calendar, UserPlus, X, Plus, Trash2, CheckCircle2, Circle, ChevronDown, ChevronUp, AlignLeft, CheckSquare, Tag, AlertTriangle, Clock, GripHorizontal, Mail } from 'lucide-react';
 import Avatar from './Avatar';
 import { useModal } from '../context/ModalContext';
 
 const TaskCard = ({ task, boardMembers, onUpdate, provided, snapshot, isSpotlightMatched = true, hasActiveSearch = false }) => {
-  const { showConfirm } = useModal();
+  const { showConfirm, showPrompt, showAlert } = useModal();
   const [description, setDescription] = useState(task.description || '');
   const [dueDate, setDueDate] = useState(task.dueDate ? task.dueDate.split('T')[0] : '');
   const [assigneeId, setAssigneeId] = useState(task.assigneeId || '');
@@ -49,6 +49,29 @@ const TaskCard = ({ task, boardMembers, onUpdate, provided, snapshot, isSpotligh
       onUpdate();
     } catch (e) {
       console.error(e);
+    }
+  };
+
+  const handleSendEmail = async () => {
+    // Buscar a los usuarios con acceso al tablero y mapear su estado de correo
+    const memberOptions = boardMembers.map(m => {
+      const email = m.user?.email || m.email;
+      const username = m.user?.username || m.username;
+      
+      if (!email || email.trim() === '') {
+        return { label: `👤 ${username} (Sin correo asignado)`, value: '', disabled: true };
+      }
+      return { label: `👤 ${username} (${email})`, value: email, disabled: false };
+    });
+
+    const email = await showPrompt('Enviar Tarea', 'Ingresa los correos a los que deseas enviar los detalles (separados por comas) o selecciona desde el directorio del tablero:', '', memberOptions);
+    if (email && email.trim() !== '') {
+      try {
+        await axios.post(`/api/tasks/${task.id}/email`, { email: email.trim() });
+        showAlert('Enviado', 'El correo ha sido enviado exitosamente.', 'success');
+      } catch (e) {
+        showAlert('Error', e.response?.data?.error || 'No se pudo enviar el correo. Verifica tu configuración SMTP.', 'danger');
+      }
     }
   };
 
@@ -373,6 +396,11 @@ const TaskCard = ({ task, boardMembers, onUpdate, provided, snapshot, isSpotligh
         </select>
 
         <div style={{ flex: 1 }}></div>
+
+        {/* Email Task */}
+        <button className="btn btn-text" style={{ padding: '2px', color: 'var(--accent-blue)', flexShrink: 0, marginRight: '4px' }} onClick={handleSendEmail} title="Enviar por Correo">
+          <Mail size={14} />
+        </button>
 
         {/* Delete Task */}
         <button className="btn btn-text" style={{ padding: '2px', color: 'red', flexShrink: 0 }} onClick={handleDeleteTask} title="Eliminar Tarea">
