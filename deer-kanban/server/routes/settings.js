@@ -5,40 +5,34 @@ const { authenticateToken, requireAdmin } = require('../middleware/auth');
 
 router.use(authenticateToken);
 
-const archiver = require('archiver');
 const fs = require('fs');
 const path = require('path');
+const AdmZip = require('adm-zip');
+const multer = require('multer');
 
 // GET /api/settings/backup (Requiere Admin)
 router.get('/backup', requireAdmin, async (req, res) => {
   try {
     const backupName = `deer-kanban-backup-${new Date().toISOString().slice(0, 10)}.zip`;
     
-    res.attachment(backupName);
-    const archive = archiver('zip', { zlib: { level: 9 } });
-
-    archive.on('error', (err) => {
-      console.error('Archive error:', err);
-      if (!res.headersSent) {
-        res.status(500).json({ error: 'Error al generar el backup' });
-      }
-    });
-
-    archive.pipe(res);
+    const zip = new AdmZip();
 
     // Añadir dev.db
     const dbPath = path.join(__dirname, '../prisma/dev.db');
     if (fs.existsSync(dbPath)) {
-      archive.file(dbPath, { name: 'dev.db' });
+      zip.addLocalFile(dbPath);
     }
 
     // Añadir carpeta de uploads (imágenes)
     const uploadsPath = path.join(__dirname, '../public/uploads');
     if (fs.existsSync(uploadsPath)) {
-      archive.directory(uploadsPath, 'uploads');
+      zip.addLocalFolder(uploadsPath, 'uploads');
     }
 
-    await archive.finalize();
+    const zipBuffer = zip.toBuffer();
+    res.attachment(backupName);
+    res.send(zipBuffer);
+    
   } catch (error) {
     console.error('Error al generar backup:', error);
     if (!res.headersSent) {
@@ -47,8 +41,6 @@ router.get('/backup', requireAdmin, async (req, res) => {
   }
 });
 
-const multer = require('multer');
-const AdmZip = require('adm-zip');
 const upload = multer({ dest: path.join(__dirname, '../temp/') });
 
 // POST /api/settings/restore (Requiere Admin)
