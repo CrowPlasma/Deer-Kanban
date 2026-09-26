@@ -247,10 +247,10 @@ const AdminPanel = () => {
 
           <div className="card" style={{ marginBottom: '24px' }}>
             <h3 style={{ marginBottom: '16px', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Upload size={18}/> Importaci\u00f3n Masiva (CSV)
+              <Upload size={18}/> {"Importaci\u00f3n Masiva (CSV)"}
             </h3>
             <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
-              Importa m\u00faltiples usuarios de forma r\u00e1pida. Todos los usuarios creados tendr\u00e1n la contrase\u00f1a inicial <strong>1234567890</strong>.
+              {"Importa m\u00faltiples usuarios de forma r\u00e1pida. Todos los usuarios creados tendr\u00e1n la contrase\u00f1a inicial "}<strong>1234567890</strong>.
             </p>
             <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
               <button 
