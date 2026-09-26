@@ -290,24 +290,25 @@ const AdminPanel = () => {
                 style={{ width: '250px' }}
               />
             </div>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
-                  <th style={{ padding: '8px 0' }}>Usuario</th>
-                  <th style={{ padding: '8px 0' }}>Contacto</th>
-                  <th style={{ padding: '8px 0' }}>Rol</th>
-                  <th style={{ padding: '8px 0' }}>Estado</th>
-                  <th style={{ padding: '8px 0', textAlign: 'right' }}>Acciones</th>
-                </tr>
-              </thead>
+            <div style={{ maxHeight: '60vh', overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
+                <thead style={{ position: 'sticky', top: 0, background: 'var(--bg-card)', zIndex: 1, boxShadow: '0 1px 0 var(--border-color)' }}>
+                  <tr>
+                    <th style={{ padding: '12px 16px' }}>Usuario</th>
+                    <th style={{ padding: '12px 16px' }}>Contacto</th>
+                    <th style={{ padding: '12px 16px' }}>Rol</th>
+                    <th style={{ padding: '12px 16px' }}>Estado</th>
+                    <th style={{ padding: '12px 16px', textAlign: 'right' }}>Acciones</th>
+                  </tr>
+                </thead>
               <tbody>
                 {filteredUsers.map(u => (
                   <tr key={u.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                    <td style={{ padding: '12px 0' }}>{u.username}</td>
-                    <td style={{ padding: '12px 0', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                    <td style={{ padding: '12px 16px' }}>{u.username}</td>
+                    <td style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--text-secondary)' }}>
                       <div>{u.email || 'Sin correo'}</div>
                     </td>
-                    <td style={{ padding: '12px 0' }}>
+                    <td style={{ padding: '12px 16px' }}>
                       <select 
                         className="input" 
                         style={{ padding: '4px', width: 'auto' }}
@@ -318,12 +319,12 @@ const AdminPanel = () => {
                         <option value="ADMIN">ADMIN</option>
                       </select>
                     </td>
-                    <td style={{ padding: '12px 0' }}>
+                    <td style={{ padding: '12px 16px' }}>
                       <span style={{ color: u.isActive ? 'green' : 'red', fontWeight: 500 }}>
                         {u.isActive ? 'Activo' : 'Suspendido'}
                       </span>
                     </td>
-                    <td style={{ padding: '12px 0', textAlign: 'right' }}>
+                    <td style={{ padding: '12px 16px', textAlign: 'right' }}>
                       <button className="btn btn-text" onClick={() => setEditingUser({ ...u, resetPassword: false })} style={{ padding: '4px 8px', color: 'var(--accent-blue)' }} title="Editar usuario">
                         <Edit2 size={16} />
                       </button>
@@ -338,6 +339,7 @@ const AdminPanel = () => {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         </>
       )}
