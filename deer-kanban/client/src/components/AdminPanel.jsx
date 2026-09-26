@@ -28,6 +28,68 @@ const AdminPanel = () => {
     fetchUsers();
   }, []);
 
+  const handleDownloadTemplate = () => {
+    const csvContent = "username,role\nusuario_ejemplo1,USER\nadmin_ejemplo2,ADMIN\nusuario_ejemplo3,USER";
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "plantilla_usuarios.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleImportCSV = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const text = event.target.result;
+        const lines = text.split(/\r?\n/).filter(line => line.trim());
+        
+        if (lines.length < 2) {
+          showAlert('Error', 'El archivo CSV est\u00e1 vac\u00edo o no tiene datos.', 'danger');
+          return;
+        }
+
+        const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+        const userIndex = headers.indexOf('username');
+        const roleIndex = headers.indexOf('role');
+
+        if (userIndex === -1) {
+          showAlert('Error', 'El CSV debe contener al menos una columna llamada "username".', 'danger');
+          return;
+        }
+
+        const usersToImport = [];
+        for (let i = 1; i < lines.length; i++) {
+          const cols = lines[i].split(',').map(c => c.trim());
+          if (cols[userIndex]) {
+            usersToImport.push({
+              username: cols[userIndex],
+              role: roleIndex !== -1 ? cols[roleIndex] : 'USER'
+            });
+          }
+        }
+
+        const res = await axios.post('/api/users/bulk', { users: usersToImport });
+        fetchUsers();
+        showAlert(
+          'Importaci\u00f3n Completada', 
+          `Usuarios creados: ${res.data.created}.\n${res.data.errors.length > 0 ? 'Errores: ' + res.data.errors.join(', ') : ''}`, 
+          'success'
+        );
+      } catch (err) {
+        showAlert('Error', err.response?.data?.error || 'Error al procesar el archivo CSV.', 'danger');
+      }
+      e.target.value = null; // Reset input
+    };
+    reader.readAsText(file);
+  };
+
   const handleCreateUser = async (e) => {
     e.preventDefault();
     try {
@@ -181,6 +243,37 @@ const AdminPanel = () => {
               </div>
               <button type="submit" className="btn btn-primary">Crear</button>
             </form>
+          </div>
+
+          <div className="card" style={{ marginBottom: '24px' }}>
+            <h3 style={{ marginBottom: '16px', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Upload size={18}/> Importaci\u00f3n Masiva (CSV)
+            </h3>
+            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
+              Importa m\u00faltiples usuarios de forma r\u00e1pida. Todos los usuarios creados tendr\u00e1n la contrase\u00f1a inicial <strong>1234567890</strong>.
+            </p>
+            <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+              <button 
+                type="button" 
+                className="btn btn-text" 
+                style={{ padding: '8px 16px', border: '1px dashed var(--accent-blue)', color: 'var(--accent-blue)', display: 'flex', alignItems: 'center', gap: '8px' }}
+                onClick={handleDownloadTemplate}
+              >
+                <Download size={16} /> Descargar Plantilla Muestra
+              </button>
+              
+              <div style={{ borderLeft: '1px solid var(--border-color)', paddingLeft: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <label className="btn btn-primary" style={{ cursor: 'pointer', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Upload size={16} /> Importar Archivo CSV
+                  <input 
+                    type="file" 
+                    accept=".csv"
+                    style={{ display: 'none' }}
+                    onChange={handleImportCSV}
+                  />
+                </label>
+              </div>
+            </div>
           </div>
 
           <div className="card">

@@ -66,6 +66,53 @@ router.post('/', async (req, res) => {
   }
 });
 
+// POST /api/users/bulk
+router.post('/bulk', async (req, res) => {
+  try {
+    const { users } = req.body;
+    if (!users || !Array.isArray(users)) {
+      return res.status(400).json({ error: 'Formato invǭlido. Se esperaba un array de usuarios.' });
+    }
+
+    const defaultPassword = '1234567890';
+    const passwordHash = await bcrypt.hash(defaultPassword, 10);
+    
+    let created = 0;
+    let errors = [];
+
+    for (const [index, u] of users.entries()) {
+      const username = u.username?.trim();
+      const role = u.role?.trim().toUpperCase() === 'ADMIN' ? 'ADMIN' : 'USER';
+      
+      if (!username) {
+        errors.push(`Fila ${index + 2}: Nombre de usuario vaco.`);
+        continue;
+      }
+
+      const existing = await prisma.user.findUnique({ where: { username } });
+      if (existing) {
+        errors.push(`Fila ${index + 2}: El usuario '${username}' ya existe.`);
+        continue;
+      }
+
+      await prisma.user.create({
+        data: {
+          username,
+          passwordHash,
+          role,
+          forcePasswordChange: true
+        }
+      });
+      created++;
+    }
+
+    res.json({ message: 'Importacin finalizada', created, errors });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error durante la importacin masiva' });
+  }
+});
+
 // PATCH /api/users/:id/status
 router.patch('/:id/status', async (req, res) => {
   try {
