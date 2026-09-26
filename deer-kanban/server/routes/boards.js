@@ -12,6 +12,82 @@ const PRESENCE_TIMEOUT_MS = 30 * 1000; // 30 seconds
 
 router.use(authenticateToken);
 
+// POST /api/boards/import
+router.post('/import', async (req, res) => {
+  try {
+    const { boardData } = req.body;
+    if (!boardData || !boardData.name) {
+      return res.status(400).json({ error: 'Formato de respaldo inv\u00e1lido' });
+    }
+
+    const newBoard = await prisma.board.create({
+      data: {
+        name: `Restaurado - ${boardData.name}`,
+        ownerId: req.user.userId,
+        backgroundUrl: boardData.backgroundUrl || null
+      }
+    });
+
+    if (boardData.lists && Array.isArray(boardData.lists)) {
+      for (const list of boardData.lists) {
+        const newList = await prisma.list.create({
+          data: { name: list.name, order: list.order, boardId: newBoard.id }
+        });
+        if (list.tasks && Array.isArray(list.tasks)) {
+          for (const task of list.tasks) {
+            await prisma.task.create({
+              data: {
+                title: task.title,
+                description: task.description || '',
+                order: task.order,
+                listId: newList.id,
+                dueDate: task.dueDate ? new Date(task.dueDate) : null,
+                labels: task.labels || '[]',
+                priority: task.priority || 'MEDIUM',
+                storyPoints: task.storyPoints || null
+              }
+            });
+          }
+        }
+      }
+    }
+    res.json(newBoard);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error al importar tablero' });
+  }
+});
+
+// GET /api/boards/:id/export
+router.get('/:id/export', async (req, res) => {
+  try {
+    const board = await prisma.board.findUnique({
+      where: { id: req.params.id },
+      include: {
+        lists: {
+          include: {
+            tasks: true
+          }
+        }
+      }
+    });
+    
+    if (!board) return res.status(404).json({ error: 'No encontrado' });
+    
+    const userBoard = await prisma.boardMember.findUnique({
+      where: { boardId_userId: { userId: req.user.userId, boardId: board.id } }
+    });
+    
+    if (board.ownerId !== req.user.userId && req.user.role !== 'ADMIN' && !userBoard) {
+      return res.status(403).json({ error: 'Sin acceso' });
+    }
+
+    res.json(board);
+  } catch (error) {
+    res.status(500).json({ error: 'Error exportando' });
+  }
+});
+
 // POST /api/boards/:id/presence  — ping "I'm here"
 router.post('/:id/presence', (req, res) => {
   const boardId = req.params.id;
