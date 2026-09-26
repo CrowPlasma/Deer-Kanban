@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
-import { Users, UserPlus, Shield, XCircle, RefreshCw, Edit2, Settings as SettingsIcon, Image as ImageIcon, Download, Database } from 'lucide-react';
+import { Users, UserPlus, Shield, XCircle, RefreshCw, Edit2, Settings as SettingsIcon, Image as ImageIcon, Download, Database, Upload } from 'lucide-react';
 import { useModal } from '../context/ModalContext';
 import { SettingsContext } from '../context/SettingsContext';
 
@@ -113,6 +113,40 @@ const AdminPanel = () => {
       showAlert('Error', 'Error al subir la imagen', 'danger');
     } finally {
       setUploading(false);
+    }
+  };
+
+  const [restoreFile, setRestoreFile] = useState(null);
+  const [restoring, setRestoring] = useState(false);
+
+  const handleRestoreBackup = async (e) => {
+    e.preventDefault();
+    if (!restoreFile) return;
+    
+    const confirmed = await showConfirm(
+      '⚠ Restaurar Respaldo', 
+      'Esto sobrescribirá TODOS los tableros, tareas y usuarios actuales con los del archivo ZIP. ¿Estás seguro de que quieres continuar?', 
+      'danger'
+    );
+    if (!confirmed) return;
+
+    setRestoring(true);
+    const formData = new FormData();
+    formData.append('backup', restoreFile);
+    
+    try {
+      const res = await axios.post('/api/settings/restore', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      showAlert('¡Restauración Exitosa!', 'El respaldo se restauró correctamente. La página se recargará para aplicar los cambios.', 'success');
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 3000);
+    } catch (err) {
+      showAlert('Error', err.response?.data?.error || 'Error al restaurar el respaldo', 'danger');
+    } finally {
+      setRestoring(false);
+      setRestoreFile(null);
     }
   };
 
@@ -276,15 +310,45 @@ const AdminPanel = () => {
             <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
               Descarga un archivo ZIP con la base de datos completa y todas las imágenes de los tableros. Ideal para migrar el sistema a otro servidor (VPS) sin perder información.
             </p>
-            <a 
-              href="/api/settings/backup" 
-              className="btn btn-primary" 
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px', textDecoration: 'none' }}
-              download
-            >
-              <Download size={18} />
-              Generar y Descargar Backup
-            </a>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'flex-start' }}>
+              <a 
+                href="/api/settings/backup" 
+                className="btn btn-primary" 
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px', textDecoration: 'none' }}
+                download
+              >
+                <Download size={18} />
+                Generar y Descargar Backup
+              </a>
+              
+              <div style={{ borderLeft: '1px solid var(--border-color)', paddingLeft: '16px' }}>
+                <p style={{ fontSize: '13px', color: 'var(--text-primary)', marginBottom: '8px', fontWeight: 500 }}>
+                  Restaurar desde un ZIP:
+                </p>
+                <form onSubmit={handleRestoreBackup} style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                  <input 
+                    type="file" 
+                    accept=".zip" 
+                    onChange={(e) => setRestoreFile(e.target.files[0])} 
+                    className="input" 
+                    style={{ padding: '6px' }}
+                  />
+                  <button 
+                    type="submit" 
+                    className="btn" 
+                    disabled={!restoreFile || restoring}
+                    style={{ 
+                      display: 'inline-flex', alignItems: 'center', gap: '6px', 
+                      background: restoreFile ? 'var(--accent-blue)' : 'var(--bg-hover)', 
+                      color: restoreFile ? '#fff' : 'var(--text-secondary)' 
+                    }}
+                  >
+                    <Upload size={16} />
+                    {restoring ? 'Restaurando...' : 'Restaurar'}
+                  </button>
+                </form>
+              </div>
+            </div>
           </div>
 
           <hr style={{ border: 'none', borderTop: '1px solid var(--border-color)', margin: '24px 0' }} />

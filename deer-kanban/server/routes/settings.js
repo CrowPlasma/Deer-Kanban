@@ -47,6 +47,50 @@ router.get('/backup', requireAdmin, async (req, res) => {
   }
 });
 
+const multer = require('multer');
+const AdmZip = require('adm-zip');
+const upload = multer({ dest: path.join(__dirname, '../temp/') });
+
+// POST /api/settings/restore (Requiere Admin)
+router.post('/restore', requireAdmin, upload.single('backup'), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'No se subió ningún archivo' });
+  }
+
+  try {
+    const zip = new AdmZip(req.file.path);
+    const zipEntries = zip.getEntries();
+    
+    // Validate backup contents
+    const hasDb = zipEntries.some(e => e.entryName === 'dev.db');
+    if (!hasDb) {
+      fs.unlinkSync(req.file.path);
+      return res.status(400).json({ error: 'El archivo ZIP no es válido. Falta dev.db.' });
+    }
+
+    // Disconnect Prisma to release lock on dev.db
+    await prisma.$disconnect();
+
+    // Extract files
+    zipEntries.forEach((zipEntry) => {
+      if (zipEntry.entryName === 'dev.db') {
+         zip.extractEntryTo(zipEntry, path.join(__dirname, '../prisma'), false, true);
+      } else if (zipEntry.entryName.startsWith('uploads/')) {
+         zip.extractEntryTo(zipEntry, path.join(__dirname, '../public'), true, true);
+      }
+    });
+
+    // Cleanup uploaded zip
+    fs.unlinkSync(req.file.path);
+
+    res.json({ message: 'Respaldo restaurado con éxito. Por favor recarga la página.' });
+  } catch (error) {
+    console.error('Error al restaurar backup:', error);
+    if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+    res.status(500).json({ error: 'Error al restaurar el respaldo. ' + error.message });
+  }
+});
+
 // GET /api/settings
 router.get('/', async (req, res) => {
   try {
