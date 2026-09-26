@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
-import { Plus, Layout, Moon, Sun, Menu, LogOut, Folder, Share2, Trash2, RotateCcw } from 'lucide-react';
+import { Plus, Layout, Moon, Sun, Menu, LogOut, Folder, Share2, Trash2, RotateCcw, Upload, Edit2 } from 'lucide-react';
 import { ThemeContext } from '../context/ThemeContext';
 import { AuthContext } from '../context/AuthContext';
 import { useModal } from '../context/ModalContext';
@@ -8,7 +8,7 @@ import { useModal } from '../context/ModalContext';
 const Sidebar = ({ onSelectBoard, currentBoardId, user, onAdminClick }) => {
   const { theme, toggleTheme } = useContext(ThemeContext);
   const { logout } = useContext(AuthContext);
-  const { showConfirm } = useModal();
+  const { showConfirm, showPrompt } = useModal();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [boards, setBoards] = useState({ owned: [], shared: [], archived: [] });
   const [newBoardName, setNewBoardName] = useState('');
@@ -26,6 +26,27 @@ const Sidebar = ({ onSelectBoard, currentBoardId, user, onAdminClick }) => {
     fetchBoards();
   }, []);
 
+  const handleImportBoard = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const text = event.target.result;
+        const boardData = JSON.parse(text);
+        const res = await axios.post('/api/boards/import', { boardData });
+        fetchBoards();
+        onSelectBoard(res.data.id);
+        showAlert('Importaci\u00f3n Exitosa', 'El tablero se ha restaurado correctamente en una nueva copia.', 'success');
+      } catch (err) {
+        showAlert('Error', 'No se pudo importar el tablero. Verifica que el archivo JSON sea v\u00e1lido.', 'danger');
+      }
+      e.target.value = null; // Reset
+    };
+    reader.readAsText(file);
+  };
+
   const handleCreateBoard = async (e) => {
     e.preventDefault();
     if (!newBoardName.trim()) return;
@@ -36,6 +57,19 @@ const Sidebar = ({ onSelectBoard, currentBoardId, user, onAdminClick }) => {
       onSelectBoard(res.data.id);
     } catch (e) {
       console.error(e);
+    }
+  };
+
+  const handleEditBoard = async (e, id, currentName) => {
+    e.stopPropagation();
+    const newName = await showPrompt('Renombrar Tablero', 'Ingresa el nuevo nombre para el tablero:', currentName);
+    if (newName && newName.trim() !== '' && newName !== currentName) {
+      try {
+        await axios.patch(`/api/boards/${id}`, { name: newName.trim() });
+        fetchBoards();
+      } catch (error) {
+        console.error('Error al renombrar el tablero:', error);
+      }
     }
   };
 
@@ -119,21 +153,32 @@ const Sidebar = ({ onSelectBoard, currentBoardId, user, onAdminClick }) => {
           )}
           
           {!isCollapsed ? (
-            <form onSubmit={handleCreateBoard} style={{ display: 'flex', marginBottom: '12px', gap: '4px', padding: '0 4px' }}>
-              <input 
-                type="text" 
-                className="input" 
-                placeholder="Nuevo tablero..." 
-                value={newBoardName} 
-                onChange={(e) => setNewBoardName(e.target.value)} 
-                style={{ padding: '8px 12px', fontSize: '13px', borderRadius: '8px', border: '1px dashed var(--border-color)', background: 'transparent' }}
-              />
-              <button type="submit" className="btn btn-text" style={{ padding: '8px', color: 'var(--accent-blue)' }}><Plus size={18}/></button>
-            </form>
+            <div style={{ marginBottom: '12px', padding: '0 4px' }}>
+              <form onSubmit={handleCreateBoard} style={{ display: 'flex', gap: '4px', marginBottom: '8px' }}>
+                <input 
+                  type="text" 
+                  className="input" 
+                  placeholder="Nuevo tablero..." 
+                  value={newBoardName} 
+                  onChange={(e) => setNewBoardName(e.target.value)} 
+                  style={{ padding: '8px 12px', fontSize: '13px', borderRadius: '8px', border: '1px dashed var(--border-color)', background: 'transparent' }}
+                />
+                <button type="submit" className="btn btn-text" style={{ padding: '8px', color: 'var(--accent-blue)' }}><Plus size={18}/></button>
+              </form>
+              <label className="btn btn-text" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--text-secondary)', padding: '6px', margin: 0, justifyContent: 'center', border: '1px dashed var(--border-color)', borderRadius: '8px' }}>
+                <Upload size={14} /> {"Importar Tablero"}
+                <input type="file" accept=".json" style={{ display: 'none' }} onChange={handleImportBoard} />
+              </label>
+            </div>
           ) : (
-            <button className="btn btn-text" style={{ width: '40px', height: '40px', minHeight: '40px', minWidth: '40px', margin: '0 0 12px 0', padding: '0', color: 'var(--accent-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px', border: '1px dashed var(--border-color)' }} title="Nuevo tablero" onClick={() => setIsCollapsed(false)}>
-              <Plus size={20}/>
-            </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px', alignItems: 'center' }}>
+              <button className="btn btn-text" style={{ width: '40px', height: '40px', minHeight: '40px', minWidth: '40px', margin: 0, padding: '0', color: 'var(--accent-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px', border: '1px dashed var(--border-color)' }} title="Nuevo tablero" onClick={() => setIsCollapsed(false)}>
+                <Plus size={20}/>
+              </button>
+              <button className="btn btn-text" style={{ width: '40px', height: '40px', minHeight: '40px', minWidth: '40px', margin: 0, padding: '0', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px', border: '1px dashed var(--border-color)' }} title="Importar Tablero" onClick={() => setIsCollapsed(false)}>
+                <Upload size={18}/>
+              </button>
+            </div>
           )}
 
           <ul style={{ listStyle: 'none', padding: 0, margin: 0, width: '100%' }}>
@@ -170,14 +215,24 @@ const Sidebar = ({ onSelectBoard, currentBoardId, user, onAdminClick }) => {
                     ) : b.name}
                   </button>
                 {!isCollapsed && (
-                  <button 
-                    className="btn btn-text" 
-                    style={{ padding: '6px', color: 'var(--text-secondary)' }}
-                    onClick={(e) => handleDeleteBoard(e, b.id)}
-                    title="Eliminar tablero"
-                  >
-                    <Trash2 size={14} />
-                  </button>
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <button 
+                      className="btn btn-text" 
+                      style={{ padding: '6px', color: 'var(--text-secondary)' }}
+                      onClick={(e) => handleEditBoard(e, b.id, b.name)}
+                      title="Renombrar tablero"
+                    >
+                      <Edit2 size={14} />
+                    </button>
+                    <button 
+                      className="btn btn-text" 
+                      style={{ padding: '6px', color: 'var(--text-secondary)' }}
+                      onClick={(e) => handleDeleteBoard(e, b.id)}
+                      title="Eliminar tablero"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 )}
               </li>
             ))}

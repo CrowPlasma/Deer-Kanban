@@ -20,7 +20,9 @@ const BoardSettingsModal = ({ board: initialBoard, onClose, onUpdate, onDelete }
   const { showConfirm, showAlert } = useModal();
 
   const isOwner = user?.id === board.ownerId;
-
+  useEffect(() => {
+    setBoard(initialBoard);
+  }, [initialBoard]);
   useEffect(() => {
     const fetchUsers = async () => {
       if (!inviteUsername.trim()) {
@@ -189,7 +191,7 @@ const BoardSettingsModal = ({ board: initialBoard, onClose, onUpdate, onDelete }
           <div>
             <div style={{ marginBottom: '24px' }}>
               <h3 style={{ fontSize: '14px', marginBottom: '8px' }}>Miembros Actuales</h3>
-              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0, maxHeight: '200px', overflowY: 'auto' }}>
                 <li style={{ padding: '4px 0', fontSize: '14px', color: 'var(--text-secondary)' }}>
                   {board.owner.username} (Dueño)
                 </li>
@@ -218,10 +220,10 @@ const BoardSettingsModal = ({ board: initialBoard, onClose, onUpdate, onDelete }
                     style={{ width: '100%' }}
                   />
                   {showResults && searchResults.length > 0 && (
-                    <ul style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '4px', zIndex: 10, listStyle: 'none', padding: 0, margin: 0, maxHeight: '150px', overflowY: 'auto', boxShadow: 'var(--shadow-lg)' }}>
+                    <ul style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '4px', marginTop: '4px', listStyle: 'none', padding: 0, margin: '4px 0 0 0', maxHeight: '150px', overflowY: 'auto', boxShadow: 'var(--shadow-lg)' }}>
                       {searchResults.map(u => (
                         <li key={u.id}>
-                          <button type="button" className="btn btn-text" style={{ width: '100%', justifyContent: 'flex-start', padding: '8px 12px', fontSize: '13px' }} onClick={() => handleInvite(null, u.username)}>
+                          <button type="button" className="btn btn-text" style={{ width: '100%', justifyContent: 'flex-start', padding: '8px 12px', fontSize: '13px' }} onClick={() => { setInviteUsername(u.username); setShowResults(false); }}>
                             <Search size={14} style={{ marginRight: '8px', color: 'var(--text-secondary)' }}/> {u.username}
                           </button>
                         </li>
@@ -396,6 +398,34 @@ const BoardSettingsModal = ({ board: initialBoard, onClose, onUpdate, onDelete }
                 Clonar este Tablero
               </button>
             )}
+
+            <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '24px', paddingBottom: '24px' }}>
+              <h3 style={{ fontSize: '15px', marginBottom: '8px', color: 'var(--text-primary)' }}>\ud83d\udcbe Respaldo Individual (Exportar)</h3>
+              <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '12px' }}>
+                Descarga un archivo JSON con toda la configuraci\u00f3n y tareas de este tablero para tener una copia de seguridad local.
+              </p>
+              <button 
+                type="button"
+                className="btn btn-text" 
+                style={{ width: '100%', justifyContent: 'center', border: '1px dashed var(--accent-blue)', color: 'var(--accent-blue)' }}
+                onClick={async () => {
+                  try {
+                    const res = await axios.get(`/api/boards/${board.id}/export`);
+                    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(res.data, null, 2));
+                    const link = document.createElement('a');
+                    link.setAttribute('href', dataStr);
+                    link.setAttribute('download', `respaldo_tablero_${board.name}.json`);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                  } catch(e) {
+                    showAlert('Error', 'No se pudo exportar el tablero.', 'danger');
+                  }
+                }}
+              >
+                Descargar Respaldo JSON
+              </button>
+            </div>
 
             <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '24px' }}>
               <h3 style={{ fontSize: '14px', marginBottom: '8px', color: '#ef4444' }}>Zona de Peligro</h3>

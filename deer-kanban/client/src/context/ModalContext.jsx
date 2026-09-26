@@ -42,6 +42,26 @@ export const ModalProvider = ({ children }) => {
     });
   };
 
+  const showPrompt = (title, message, defaultValue = '') => {
+    return new Promise((resolve) => {
+      setModalState({
+        type: 'prompt',
+        variant: 'info',
+        title,
+        message,
+        defaultValue,
+        onConfirm: (val) => {
+          setModalState(null);
+          resolve(val);
+        },
+        onCancel: () => {
+          setModalState(null);
+          resolve(null);
+        }
+      });
+    });
+  };
+
   const renderIcon = (variant) => {
     switch(variant) {
       case 'danger': return <XCircle size={40} color="#ef4444" />;
@@ -52,7 +72,7 @@ export const ModalProvider = ({ children }) => {
   };
 
   return (
-    <ModalContext.Provider value={{ showConfirm, showAlert }}>
+    <ModalContext.Provider value={{ showConfirm, showAlert, showPrompt }}>
       {children}
       {modalState && (
         <div className="modal-overlay" style={{ zIndex: 9999 }}>
@@ -64,8 +84,24 @@ export const ModalProvider = ({ children }) => {
             <p style={{ color: 'var(--text-secondary)', marginBottom: '24px', fontSize: '14px' }}>
               {modalState.message}
             </p>
+            
+            {modalState.type === 'prompt' && (
+              <input 
+                autoFocus
+                type="text" 
+                className="input" 
+                defaultValue={modalState.defaultValue}
+                id="prompt-input"
+                style={{ width: '100%', marginBottom: '24px' }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') modalState.onConfirm(e.target.value);
+                  if (e.key === 'Escape') modalState.onCancel();
+                }}
+              />
+            )}
+
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-              {modalState.type === 'confirm' && (
+              {(modalState.type === 'confirm' || modalState.type === 'prompt') && (
                 <button 
                   className="btn" 
                   onClick={modalState.onCancel}
@@ -76,7 +112,14 @@ export const ModalProvider = ({ children }) => {
               <button 
                 className={`btn ${modalState.variant === 'danger' ? '' : 'btn-primary'}`} 
                 style={modalState.variant === 'danger' ? { backgroundColor: '#ef4444', color: 'white', borderColor: 'transparent' } : {}}
-                onClick={modalState.onConfirm}
+                onClick={() => {
+                  if (modalState.type === 'prompt') {
+                    const val = document.getElementById('prompt-input').value;
+                    modalState.onConfirm(val);
+                  } else {
+                    modalState.onConfirm();
+                  }
+                }}
               >
                 Aceptar
               </button>
