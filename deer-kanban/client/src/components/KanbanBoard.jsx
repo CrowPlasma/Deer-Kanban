@@ -276,7 +276,7 @@ const KanbanBoard = ({ boardId, user }) => {
   }
 
   const bgStyle = bgUrl ? {
-    backgroundImage: `url(${bgUrl})`,
+    backgroundImage: `url("${bgUrl}")`,
     backgroundSize: 'cover',
     backgroundPosition: 'center',
     backgroundAttachment: 'fixed',
