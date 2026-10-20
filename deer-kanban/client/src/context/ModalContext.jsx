@@ -69,13 +69,13 @@ const PromptInput = ({ defaultValue, options, onConfirm, onCancel }) => {
           top: '100%',
           left: 0,
           right: 0,
-          background: 'var(--bg-primary, #ffffff)',
+          background: 'var(--bg-card)',
           border: '1px solid var(--border-color)',
           borderRadius: '4px',
           maxHeight: '180px',
           overflowY: 'auto',
           zIndex: 10,
-          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          boxShadow: 'var(--shadow-lg)',
           marginTop: '4px'
         }}>
           {filtered.length > 0 ? filtered.map((opt, i) => (
@@ -101,7 +101,7 @@ const PromptInput = ({ defaultValue, options, onConfirm, onCancel }) => {
                 display: 'flex',
                 alignItems: 'center'
               }}
-              onMouseOver={(e) => { if (!opt.disabled) e.currentTarget.style.background = 'var(--bg-secondary, #f1f5f9)' }}
+              onMouseOver={(e) => { if (!opt.disabled) e.currentTarget.style.background = 'var(--bg-hover)' }}
               onMouseOut={(e) => { if (!opt.disabled) e.currentTarget.style.background = 'transparent' }}
             >
               {opt.label || opt.value || opt}

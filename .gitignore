@@ -7,5 +7,7 @@ dist/
 *.db-wal
 server/public/uploads/*
 !server/public/uploads/.gitkeep
+deer-kanban/server/public/uploads/*
+!deer-kanban/server/public/uploads/.gitkeep
 compare.py
 diff.txt
