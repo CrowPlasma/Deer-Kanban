@@ -1,0 +1,197 @@
+================================================================================
+                    DEER KANBAN - CONTEXTO INTEGRAL DEL PROYECTO
+================================================================================
+Fecha de generación: 25 de noviembre de 2026
+Propósito: Mantener el 100% del contexto del proyecto, arquitectura, decisiones,
+historial de cambios y roadmap para continuar el desarrollo en una nueva máquina.
+================================================================================
+
+1. INFORMACIÓN GENERAL Y REPOSITORIO
+--------------------------------------------------------------------------------
+- Nombre del Proyecto: Deer Kanban
+- Repositorio GitHub: https://github.com/CrowPlasma/Deer-Kanban.git
+- Rama Principal: main
+- Licencia: GNU General Public License v3.0 (GPLv3) (archivos LICENSE en raíz y app)
+- Propósito: Aplicación web de gestión de tareas ágil inspirada en Kanban, enfocada
+  en uso individual y colaborativo sin costos de suscripción, con personalización
+  visual avanzada (Glassmorphism), soporte de fondos dinámicos en alta resolución,
+  gestión de usuarios/roles y sistema de notificaciones automáticas por correo.
+
+2. REGLA DE ORO DEL DESARROLLO (CRÍTICO)
+--------------------------------------------------------------------------------
+¡REGLA ABSOLUTA ACORDADA CON EL USUARIO!
+"Primero modificamos y probamos en local, y después de validar metemos los cambios
+a GitHub."
+- NUNCA hacer commits/push directos a GitHub con cambios experimentales o sin
+  validación previa del usuario.
+- Siempre confirmar funcionamiento en el entorno local antes de sincronizar con el
+  repositorio remoto.
+
+3. ARQUITECTURA TÉCNICA Y STACK TECNOLÓGICO
+--------------------------------------------------------------------------------
+¿Utiliza PHP?: NO. El proyecto es 100% JavaScript / Node.js.
+
+A. FRONTEND:
+  - Framework: React 19 + Vite.
+  - Librerías clave:
+    * @hello-pangea/dnd (Drag and drop para listas y tareas)
+    * lucide-react (Iconografía moderna)
+    * axios (Cliente HTTP con interceptores para JWT)
+    * jwt-decode (Decodificación de tokens de sesión)
+    * react-router-dom v7
+  - Estilos y UI:
+    * CSS modular y variables nativas (:root)
+    * Diseño Glassmorphism (efectos de cristal, transparencias, desenfoques de fondo)
+    * Modo Oscuro / Claro integrado con variables CSS
+    * Soporte para galería de fondos personalizables y fondo institucional fijo
+
+B. BACKEND:
+  - Runtime: Node.js
+  - Servidor: Express (v5.2.1)
+  - Base de Datos: SQLite
+  - ORM: Prisma ORM (v6.19.3) con cliente generado en Node
+  - Autenticación: JWT (JSON Web Tokens) con bcrypt para hashing de contraseñas
+  - Notificaciones: Nodemailer (conectado a Gmail SMTP vía App Passwords)
+  - Utilidades: Multer (subida de archivos), archiver y adm-zip (respaldo y restauración)
+
+C. BASE DE DATOS (Prisma Schema - SQLite):
+  - Ubicación de la base de datos: server/prisma/dev.db
+  - Esquema: server/prisma/schema.prisma
+  - Modelos principales:
+    * User: id, username, passwordHash, email, phone, role (ADMIN/USER), forcePasswordChange, isActive.
+    * Board: id, name, ownerId, backgroundUrl, isArchived.
+    * BoardMember: id, boardId, userId (roles y membresías de tablero).
+    * List: id, name, boardId, order.
+    * Task: id, title, description, dueDate, color, labels, isCompleted, isArchived, listId, assigneeId, order.
+    * Subtask: id, title, isCompleted, taskId.
+    * Comment: id, content, taskId, userId.
+    * SystemSettings: id ("singleton"), institutionalBackgroundUrl, allowCustomBackgrounds, smtpEmail, smtpPassword.
+    * Activity: id, boardId, userId, action, details (registro de auditoría).
+
+D. CONTENEDORES Y DESPLIEGUE (Docker):
+  - Dockerfile multi-etapa:
+    * Etapa 1: node:22-alpine construye el cliente React (Vite build a dist/).
+    * Etapa 2: node:22-alpine prepara Express, instala dependencias, genera cliente Prisma,
+      copia el frontend compilado a server/public para servirlo de forma unificada.
+    * Arranque: CMD ["sh", "-c", "npx prisma db push --accept-data-loss && npm start"]
+  - docker-compose.yml:
+    * Servicio: kanban-app en puerto 3025:3025.
+    * Volúmenes persistentes bind-mount:
+      - ./server/prisma:/app/server/prisma (Persiste SQLite dev.db y schema)
+      - ./server/public/uploads:/app/server/public/uploads (Persiste imágenes y adjuntos)
+    * Variables de entorno: PORT=3025, DATABASE_URL=file:./dev.db, JWT_SECRET=supersecret_key_kanban
+
+4. ENTORNO DE PRODUCCIÓN (VPS + DOCKGE)
+--------------------------------------------------------------------------------
+- Sistema Operativo VPS: Ubuntu Linux.
+- Gestor de Contenedores: Dockge.
+- Ruta de la pila en el VPS: /opt/stacks/deer-kanban/
+- ¡ATENCIÓN!: La carpeta del stack en el VPS NO es un repositorio Git (ejecutar
+  `git pull` no funciona y arroja error).
+
+MÉTODO OFICIAL DE ACTUALIZACIÓN EN EL VPS:
+Para actualizar la aplicación en producción sin romper configuraciones ni borrar datos:
+```bash
+wget -qO- https://github.com/CrowPlasma/Deer-Kanban/archive/refs/heads/main.tar.gz | sudo tar xz --strip-components=1 && sudo docker compose build --no-cache && sudo docker compose up -d
+```
+¿Por qué es seguro?:
+Porque server/prisma/dev.db y server/public/uploads están ignorados en GitHub y montados
+como volúmenes locales. El comando extrae el código fuente nuevo por encima y Docker
+reconstruye la imagen, manteniendo intacta la base de datos y los archivos del usuario.
+
+5. HISTORIAL DE TRABAJO REALIZADO Y FUNCIONES IMPLEMENTADAS
+--------------------------------------------------------------------------------
+1. Roles y Permisos de Usuarios:
+   - Rol ADMIN y rol USER. Usuario administrador creado: emherrerag.
+   - Acceso al panel de administración condicionado a requireAdmin.
+
+2. Configuración y Marca Institucional:
+   - Carga y eliminación de fondo institucional de pantalla.
+   - Opción para restringir o permitir fondos personalizados a los usuarios.
+   - Respaldo completo del sistema descargable en formato ZIP (/api/settings/backup).
+   - Restauración de base de datos y archivos desde archivo ZIP (/api/settings/restore).
+
+3. Sistema de Notificaciones por Correo (Gmail SMTP):
+   - Configuración en AdminPanel: Email Gmail + Contraseña de Aplicación de 16 letras
+     de Google (App Password).
+   - Botón "Desvincular Correo" con modal de confirmación nativo de la app (showConfirm).
+   - Modal de envío de tareas por correo:
+     * Ancho del modal ampliado a 550px.
+     * Botón "Directorio de miembros" que despliega lista de miembros con email.
+     * Soporte nativo para múltiples destinatarios separados por comas (ej. a@x.com, b@x.com).
+     * Soporte de tema oscuro ajustado con variables var(--bg-card), var(--bg-hover) y sombras.
+   - Migración automática en inicio:
+     * package.json del servidor ejecuta `npx prisma db push && node index.js` al encender.
+     * Garantiza que nuevas columnas en schema.prisma se apliquen solas al iniciar el contenedor.
+
+4. Licenciamiento Open Source:
+   - Todo el proyecto migrado a GNU General Public License v3.0 (GPLv3).
+   - Archivos LICENSE creados en la raíz y subcarpetas.
+   - README.md y package.json (cliente y servidor) actualizados con identificador GPLv3.
+
+6. PROBLEMAS RESUELTOS Y APRENDIZAJES CLAVE (TROUBLESHOOTING)
+--------------------------------------------------------------------------------
+A. Error 500 al guardar configuración SMTP en el VPS ("Unknown argument smtpEmail"):
+   - Causa: El archivo schema.prisma dentro del contenedor del VPS estaba desactualizado
+     respecto a settings.js, por lo que Prisma rechazaba las columnas nuevas.
+   - Corrección: Se actualizó schema.prisma dentro de /app/server/prisma desde la ruta
+     anidada de GitHub (deer-kanban/server/prisma/schema.prisma) y se reinició el contenedor.
+   - Lección: Recordar que en el repo de GitHub la app está dentro de una subcarpeta
+     llamada `deer-kanban/` (es decir: repo-root/deer-kanban/client y /server).
+
+B. Permisos de SQLite en Linux:
+   - Asegurarse de que el usuario de Docker tenga permisos de lectura/escritura sobre
+     el archivo dev.db montado en /opt/stacks/deer-kanban/server/prisma/.
+
+7. ROADMAP Y PRÓXIMAS FUNCIONALIDADES EN EVALUACIÓN
+--------------------------------------------------------------------------------
+A. Envíos programados y recordatorios recurrentes (Email Cron):
+   - Objetivo: Poder programar el envío de correos sobre tareas (ej. avisar 2 días antes
+     de una fecha límite, o enviar un recordatorio recurrente cada viernes a las 4:00 PM).
+   - Arquitectura propuesta:
+     * Agregar campos a Task (reminderDate, reminderCron, isReminderActive).
+     * Tarea programada (Node cron job o agenda interna) corriendo 24/7 en Express.
+     * Revisa cada minuto tareas con recordatorios pendientes y dispara correo con Nodemailer.
+     * Lógica inteligente: Si la tarea se mueve a la columna "Completado/Hecho", el
+       recordatorio se desactiva automáticamente para evitar spam al equipo.
+
+B. Migración de Servidor (Plan de mudanza a nuevo VPS):
+   - 1. Preparar nuevo VPS con Docker + Dockge.
+   - 2. Detener servicios en VPS viejo (docker compose down) para congelar SQLite limpiamente.
+   - 3. Transferir /opt/stacks/deer-kanban vía `rsync -avzP` o tar comprimido.
+   - 4. Levantar en nuevo VPS con `docker compose up -d --build`.
+   - 5. Cambiar el registro A del dominio al nuevo IP. Datos 100% a salvo.
+
+C. Sitio Web Público, Demo Interactiva y Donaciones (Estilo Uptime Kuma):
+   - Dominio: Comprar en Cloudflare Registrar, Porkbun o Namecheap (evitar hosting compartido PHP).
+   - Landing Page promocional: Alojada gratis y ultrarrápida en Cloudflare Pages o Vercel.
+   - Demo interactiva (10-15 min): Subdominio demo.tudominio.com en VPS con cron job que
+     restablece cada 15 min una base de datos limpia de prueba (demo-seed.db).
+   - Donaciones: Integrar botones de "Buy Me a Coffee" (buymeacoffee.com) y Ko-fi (ko-fi.com).
+
+8. COMANDOS ÚTILES PARA EL DÍA A DÍA
+--------------------------------------------------------------------------------
+A. Desarrollo Local (en Windows / Powershell):
+   - Iniciar Backend:
+     cd deer-kanban/server
+     npm run start (o nodemon index.js)
+   - Iniciar Frontend:
+     cd deer-kanban/client
+     npm run dev (corre en http://localhost:5173)
+   - Levantar todo con Docker en local:
+     cd deer-kanban
+     docker compose up --build -d (corre en http://localhost:3025)
+
+B. Mantenimiento en VPS:
+   - Ver logs del contenedor en tiempo real:
+     docker compose logs -f kanban-app
+   - Ver últimas 50 líneas de error:
+     docker compose logs --tail 50 kanban-app
+   - Reiniciar contenedor:
+     docker compose restart
+   - Sincronizar esquema de base de datos manualmente si se edita schema.prisma:
+     docker compose exec kanban-app sh -c "cd /app/server && npx prisma db push"
+
+================================================================================
+Fin del archivo de contexto. Listo para ser leído por cualquier nuevo agente o entorno.
+================================================================================
